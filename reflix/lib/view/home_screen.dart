@@ -1,5 +1,5 @@
+import 'package:app_filmes/database/filme_dao.dart';
 import 'package:flutter/material.dart';
-import 'package:reflix/database/filme_dao.dart';
 
 import '../model/filme_model.dart';
 import 'detalhes_screen.dart';

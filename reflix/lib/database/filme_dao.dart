@@ -1,5 +1,5 @@
+import 'package:app_filmes/model/filme_model.dart';
 import 'package:path/path.dart';
-import 'package:reflix/model/filme_model.dart';
 import 'package:sqflite/sqflite.dart';
 
 /// Mantém o SQL isolado do resto do app (boa prática de camadas).
