@@ -1,6 +1,7 @@
 import 'package:path/path.dart';
 import 'package:sqflite/sqflite.dart';
 
+/// Única porta de entrada para o banco. Todos os DAOs usam esta conexão.
 class DatabaseHelper {
   DatabaseHelper._privateConstructor();
 
@@ -10,41 +11,60 @@ class DatabaseHelper {
 
   Future<Database> get database async => _database ??= await _initDatabase();
 
-  // Suba esse número sempre que alterar o CREATE TABLE abaixo.
-  static const int _version = 1;
+  // Suba esse número sempre que alterar o schema abaixo.
+  static const int _version = 2;
   static const String _dbName = 'app_filmes.db';
-  static const String _tableFilmes = 'filmes';
+  static const String tableFilmes = 'filmes';
+  static const String tableUsuarios = 'usuarios';
 
   Future<Database> _initDatabase() async {
-    String path = join(await getDatabasesPath(), _dbName);
+    final path = join(await getDatabasesPath(), _dbName);
     return openDatabase(
       path,
       version: _version,
       onCreate: _createDb,
+      onUpgrade: _upgradeDb,
     );
   }
 
+  Future<void> _createFilmes(Database db) => db.execute('''
+    CREATE TABLE IF NOT EXISTS $tableFilmes (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      titulo TEXT NOT NULL,
+      tipo TEXT NOT NULL,
+      genero TEXT NOT NULL,
+      anoLancamento INTEGER NOT NULL,
+      nota REAL NOT NULL,
+      comentario TEXT,
+      favorito INTEGER NOT NULL DEFAULT 0
+    )
+  ''');
+
+  Future<void> _createUsuarios(Database db) => db.execute('''
+    CREATE TABLE IF NOT EXISTS $tableUsuarios (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      nome TEXT NOT NULL,
+      email TEXT NOT NULL UNIQUE,
+      senhaHash TEXT NOT NULL
+    )
+  ''');
+
   Future<void> _createDb(Database db, int version) async {
-    await db.execute('''
-      CREATE TABLE $_tableFilmes (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        titulo TEXT NOT NULL,
-        tipo TEXT NOT NULL,
-        genero TEXT NOT NULL,
-        anoLancamento INTEGER NOT NULL,
-        nota REAL NOT NULL,
-        comentario TEXT,
-        favorito INTEGER NOT NULL DEFAULT 0
-      )
-    ''');
+    await _createFilmes(db);
+    await _createUsuarios(db);
   }
 
-  
+  // Bancos criados antes (v1) podem ter só uma das tabelas.
+  // IF NOT EXISTS cria a que faltar sem apagar dados.
+  Future<void> _upgradeDb(Database db, int oldVersion, int newVersion) async {
+    await _createFilmes(db);
+    await _createUsuarios(db);
+  }
 
-  // Útil em desenvolvimento, quando o schema muda e você não quer
-  // lidar com migração ainda: apaga o banco físico do dispositivo.
+  // Útil em desenvolvimento: apaga o banco físico do dispositivo.
   Future<void> resetDatabaseForDev() async {
-    String path = join(await getDatabasesPath(), _dbName);
+    final path = join(await getDatabasesPath(), _dbName);
+    await _database?.close();
     await deleteDatabase(path);
     _database = null;
   }

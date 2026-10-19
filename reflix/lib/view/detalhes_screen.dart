@@ -1,10 +1,12 @@
 import 'package:app_filmes/database/filme_dao.dart';
 import 'package:flutter/material.dart';
-
-import '../model/filme_model.dart';
-import 'formulario_screen.dart';
+import 'filme_model.dart';
 import 'star_rating.dart';
+import 'formulario_screen.dart';
 
+/// Tela 2 - Detalhes (READ individual + flag UPDATE + DELETE).
+/// StatefulWidget porque o botão de favorito precisa refletir a mudança
+/// imediatamente na própria tela, sem esperar voltar para a Home.
 class DetalhesScreen extends StatefulWidget {
   final Filme filme;
 
@@ -16,8 +18,8 @@ class DetalhesScreen extends StatefulWidget {
 
 class _DetalhesScreenState extends State<DetalhesScreen> {
   final FilmeDao _dao = FilmeDao();
-  late Filme _filme; 
-  
+  late Filme _filme; // cópia local para refletir alterações sem novo fetch
+
   @override
   void initState() {
     super.initState();
@@ -34,7 +36,7 @@ class _DetalhesScreenState extends State<DetalhesScreen> {
   Future<void> _abrirEdicao() async {
     final atualizado = await Navigator.push<Filme>(
       context,
-      MaterialPageRoute(builder: (_) => FormularioScreen(filmeExistente: _filme)),
+      MaterialPageRoute(builder: (_) => FormularioScreen(usuarioId: _filme.usuarioId, filmeExistente: _filme)),
     );
     // Se a tela de edição retornou um filme atualizado, refletimos aqui.
     if (atualizado != null) {
@@ -76,6 +78,12 @@ class _DetalhesScreenState extends State<DetalhesScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final data = _filme.dataAssistido;
+    final dataFormatada = data == null
+        ? '-'
+        : '${data.day.toString().padLeft(2, '0')}/'
+            '${data.month.toString().padLeft(2, '0')}/'
+            '${data.year}';
 
     return Scaffold(
       appBar: AppBar(
@@ -86,7 +94,7 @@ class _DetalhesScreenState extends State<DetalhesScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // foto
+            // Área de destaque (poderia futuramente exibir um pôster)
             Container(
               width: double.infinity,
               height: 140,
@@ -118,7 +126,10 @@ class _DetalhesScreenState extends State<DetalhesScreen> {
               icone: Icons.calendar_today_outlined,
               texto: 'Lançamento: ${_filme.anoLancamento}',
             ),
-            
+            _InfoLinha(
+              icone: Icons.event_available_outlined,
+              texto: 'Assistido em $dataFormatada',
+            ),
             if (_filme.comentario.trim().isNotEmpty)
               _InfoLinha(
                 icone: Icons.chat_bubble_outline,
@@ -167,7 +178,7 @@ class _DetalhesScreenState extends State<DetalhesScreen> {
   }
 }
 
-/// "FILME" / "SÉRIE"
+/// Selo "FILME" / "SÉRIE", reaproveitando o mesmo estilo do card da lista.
 class _Badge extends StatelessWidget {
   final String texto;
   const _Badge({required this.texto});
@@ -178,7 +189,7 @@ class _Badge extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       decoration: BoxDecoration(
-        color: theme.colorScheme.primaryContainer,
+        color: theme.colorScheme.surfaceContainerHighest,
         borderRadius: BorderRadius.circular(4),
       ),
       child: Text(
@@ -189,7 +200,7 @@ class _Badge extends StatelessWidget {
   }
 }
 
-
+/// Linha de informação com ícone + texto, reutilizada várias vezes na tela.
 class _InfoLinha extends StatelessWidget {
   final IconData icone;
   final String texto;

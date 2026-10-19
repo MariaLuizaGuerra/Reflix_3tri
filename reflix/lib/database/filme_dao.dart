@@ -1,59 +1,12 @@
 import 'package:app_filmes/model/filme_model.dart';
-import 'package:path/path.dart';
+import 'package:app_filmes/database/database_helper.dart';
 import 'package:sqflite/sqflite.dart';
 
 /// Mantém o SQL isolado do resto do app (boa prática de camadas).
 class FilmeDao {
-  static const String _nomeTabela = 'filmes';
-  static Database? _database;
+  static const String _nomeTabela = DatabaseHelper.tableFilmes;
 
-  // Singleton simples: reaproveita a mesma conexão em todo o app.
-  Future<Database> get database async {
-    _database ??= await _iniciarBanco();
-    return _database!;
-  }
-
-  Future<Database> _iniciarBanco() async {
-    final caminho = join(await getDatabasesPath(), 'app_filmes.db');
-    return openDatabase(
-      caminho,
-      version: 1, // volte pra 1: se o banco no dispositivo ainda está
-      // na v1 (schema antigo com dataAssistido), o onUpgrade não roda
-      // porque o app "acha" que já está atualizado. Ver instruções abaixo.
-      onCreate: _onCreate,
-      onUpgrade: _onUpgrade,
-    );
-  }
-
-  Future<void> _onCreate(Database db, int version) async {
-    await db.execute('''
-      CREATE TABLE $_nomeTabela (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        titulo TEXT NOT NULL,
-        tipo TEXT NOT NULL,
-        genero TEXT NOT NULL,
-        anoLancamento INTEGER NOT NULL,
-        nota REAL NOT NULL,
-        comentario TEXT,
-        favorito INTEGER NOT NULL DEFAULT 0
-      )
-    ''');
-  }
-
-  Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
-    // Exemplo de como migrar no futuro, se precisar adicionar coluna:
-    // if (oldVersion < 2) {
-    //   await db.execute('ALTER TABLE $_nomeTabela ADD COLUMN novaColuna TEXT');
-    // }
-  }
-
-  // Atalho de desenvolvimento: apaga o banco físico do dispositivo,
-  // forçando o onCreate a rodar de novo com o schema atual.
-  Future<void> resetDatabaseForDev() async {
-    final caminho = join(await getDatabasesPath(), 'app_filmes.db');
-    await deleteDatabase(caminho);
-    _database = null;
-  }
+  Future<Database> get database => DatabaseHelper.instance.database;
 
   // ---------- CREATE ----------
   Future<int> add(Filme filme) async {

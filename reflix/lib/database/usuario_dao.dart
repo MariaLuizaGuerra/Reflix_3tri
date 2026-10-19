@@ -1,35 +1,13 @@
 import 'package:app_filmes/model/usuario_model.dart';
 import 'package:sqflite/sqflite.dart';
-import 'package:path/path.dart';
+import 'package:app_filmes/database/database_helper.dart';
 
 enum ResultadoAuth { sucesso, emailJaCadastrado, credenciaisInvalidas }
 
 class UsuarioDao {
-  static const String _nomeTabela = 'usuarios';
-  static Database? _database;
+  static const String _nomeTabela = DatabaseHelper.tableUsuarios;
 
-  Future<Database> get database async {
-    _database ??= await _iniciarBanco();
-    return _database!;
-  }
-
-  Future<Database> _iniciarBanco() async {
-    final caminho = join(await getDatabasesPath(), 'app_filmes.db');
-    return openDatabase(
-      caminho,
-      version: 1,
-      onCreate: (db, version) async {
-        await db.execute('''
-          CREATE TABLE $_nomeTabela (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            nome TEXT NOT NULL,
-            email TEXT NOT NULL UNIQUE,
-            senhaHash TEXT NOT NULL
-          )
-        ''');
-      },
-    );
-  }
+  Future<Database> get database => DatabaseHelper.instance.database;
 
   /// Verifica se já existe algum usuário com esse e-mail.
   Future<bool> _emailExiste(String email) async {
