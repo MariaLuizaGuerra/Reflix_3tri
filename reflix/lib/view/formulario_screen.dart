@@ -5,9 +5,14 @@ import 'star_rating.dart';
 
 
 class FormularioScreen extends StatefulWidget {
+  final int usuarioId;
   final Filme? filmeExistente;
 
-  const FormularioScreen({super.key, this.filmeExistente});
+  const FormularioScreen({
+    super.key,
+    required this.usuarioId,
+    this.filmeExistente,
+  });
 
   bool get _modoEdicao => filmeExistente != null;
 
@@ -95,6 +100,7 @@ class _FormularioScreenState extends State<FormularioScreen> {
 
     final filme = Filme(
       id: widget.filmeExistente?.id,
+      usuarioId: widget.usuarioId,
       titulo: _tituloController.text.trim(),
       tipo: _tipo,
       genero: _genero,
@@ -177,7 +183,7 @@ class _FormularioScreenState extends State<FormularioScreen> {
                 Expanded(
                   flex: 3,
                   child: DropdownButtonFormField<String>(
-                    initialValue: null,
+                    initialValue: _generosDisponiveis.contains(_genero) ? _genero : null,
                     decoration: const InputDecoration(labelText: 'Gênero'),
                     items: _generosDisponiveis
                         .map((g) => DropdownMenuItem(value: g, child: Text(g)))

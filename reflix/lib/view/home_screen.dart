@@ -1,7 +1,7 @@
+import 'package:app_filmes/database/filme_dao.dart';
+import 'package:app_filmes/model/filme_model.dart';
+import 'package:app_filmes/model/usuario_model.dart';
 import 'package:flutter/material.dart';
-import 'usuario_model.dart';
-import 'filme_model.dart';
-import 'filme_dao.dart';
 import 'filme_card.dart';
 import 'detalhes_screen.dart';
 import 'formulario_screen.dart';
@@ -94,7 +94,6 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _abrirDashboard() {
-    // TODO: Navigator.push para a DashboardScreen quando for implementada.
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('Dashboard em breve.')),
     );

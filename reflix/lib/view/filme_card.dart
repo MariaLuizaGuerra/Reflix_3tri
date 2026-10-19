@@ -1,7 +1,6 @@
 import 'dart:io';
 import 'package:app_filmes/model/filme_model.dart';
 import 'package:flutter/material.dart';
-import 'filme_model.dart';
 import 'star_rating.dart';
 
 /// Card de um título na lista: capa, título, estrelas, favorito e excluir.

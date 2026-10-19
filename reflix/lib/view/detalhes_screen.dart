@@ -1,6 +1,6 @@
 import 'package:app_filmes/database/filme_dao.dart';
 import 'package:flutter/material.dart';
-import 'filme_model.dart';
+import '../model/filme_model.dart';
 import 'star_rating.dart';
 import 'formulario_screen.dart';
 

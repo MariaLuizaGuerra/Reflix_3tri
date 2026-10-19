@@ -56,7 +56,7 @@ class _LoginScreenState extends State<LoginScreen> {
     // (usa pushReplacement para o usuário não conseguir "voltar" pro login).
     Navigator.pushReplacement(
       context,
-      MaterialPageRoute(builder: (_) => const HomeScreen()),
+      MaterialPageRoute(builder: (_) => HomeScreen(usuario: usuario)),
     );
   }
 

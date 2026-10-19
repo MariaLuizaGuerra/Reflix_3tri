@@ -12,7 +12,7 @@ class DatabaseHelper {
   Future<Database> get database async => _database ??= await _initDatabase();
 
   // Suba esse número sempre que alterar o schema abaixo.
-  static const int _version = 2;
+  static const int _version = 3;
   static const String _dbName = 'app_filmes.db';
   static const String tableFilmes = 'filmes';
   static const String tableUsuarios = 'usuarios';
@@ -22,6 +22,7 @@ class DatabaseHelper {
     return openDatabase(
       path,
       version: _version,
+      onConfigure: (db) => db.execute('PRAGMA foreign_keys = ON'),
       onCreate: _createDb,
       onUpgrade: _upgradeDb,
     );
@@ -30,13 +31,17 @@ class DatabaseHelper {
   Future<void> _createFilmes(Database db) => db.execute('''
     CREATE TABLE IF NOT EXISTS $tableFilmes (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
+      usuarioId INTEGER NOT NULL,
       titulo TEXT NOT NULL,
       tipo TEXT NOT NULL,
       genero TEXT NOT NULL,
       anoLancamento INTEGER NOT NULL,
+      status TEXT NOT NULL DEFAULT 'assistido',
       nota REAL NOT NULL,
+      dataAssistido TEXT,
       comentario TEXT,
-      favorito INTEGER NOT NULL DEFAULT 0
+      favorito INTEGER NOT NULL DEFAULT 0,
+      FOREIGN KEY (usuarioId) REFERENCES $tableUsuarios (id)
     )
   ''');
 
@@ -54,11 +59,14 @@ class DatabaseHelper {
     await _createUsuarios(db);
   }
 
-  // Bancos criados antes (v1) podem ter só uma das tabelas.
-  // IF NOT EXISTS cria a que faltar sem apagar dados.
+  // v3: a tabela filmes ganhou usuarioId, status e dataAssistido.
+  // Em desenvolvimento, recriamos a tabela (os filmes antigos são apagados).
   Future<void> _upgradeDb(Database db, int oldVersion, int newVersion) async {
-    await _createFilmes(db);
     await _createUsuarios(db);
+    if (oldVersion < 3) {
+      await db.execute('DROP TABLE IF EXISTS $tableFilmes');
+    }
+    await _createFilmes(db);
   }
 
   // Útil em desenvolvimento: apaga o banco físico do dispositivo.

@@ -21,6 +21,17 @@ class FilmeDao {
     return resultado.map((linha) => Filme.fromMap(linha)).toList();
   }
 
+  Future<List<Filme>> listarPorUsuario(int usuarioId, StatusTitulo status) async {
+    final db = await database;
+    final resultado = await db.query(
+      _nomeTabela,
+      where: 'usuarioId = ? AND status = ?',
+      whereArgs: [usuarioId, status.name],
+      orderBy: 'id DESC',
+    );
+    return resultado.map((linha) => Filme.fromMap(linha)).toList();
+  }
+
   Future<Filme?> buscarPorId(int id) async {
     final db = await database;
     final resultado = await db.query(
@@ -59,4 +70,5 @@ class FilmeDao {
     final db = await database;
     return db.delete(_nomeTabela, where: 'id = ?', whereArgs: [id]);
   }
+
 }
