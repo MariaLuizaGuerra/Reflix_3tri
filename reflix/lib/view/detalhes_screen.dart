@@ -1,4 +1,6 @@
 import 'package:app_filmes/database/filme_dao.dart';
+import 'package:app_filmes/database/lembrete_dao.dart';
+import 'package:app_filmes/model/lembrete_model.dart';
 import 'package:flutter/material.dart';
 import '../model/filme_model.dart';
 import 'star_rating.dart';
@@ -19,12 +21,56 @@ class DetalhesScreen extends StatefulWidget {
 
 class _DetalhesScreenState extends State<DetalhesScreen> {
   final FilmeDao _dao = FilmeDao();
+  final LembreteDao _lembreteDao = LembreteDao();
   late Filme _filme; // cópia local para refletir alterações sem novo fetch
+  Lembrete? _lembrete;
 
   @override
   void initState() {
     super.initState();
     _filme = widget.filme;
+    _carregarLembrete();
+  }
+
+  String _formatarData(DateTime d) =>
+      '${d.day.toString().padLeft(2, '0')}/${d.month.toString().padLeft(2, '0')}/${d.year}';
+
+  Future<void> _carregarLembrete() async {
+    final lembrete = await _lembreteDao.buscarPorFilme(_filme.id!);
+    if (!mounted) return;
+    setState(() => _lembrete = lembrete);
+  }
+
+  Future<void> _definirLembrete() async {
+    final hoje = DateTime.now();
+    final escolhida = await showDatePicker(
+      context: context,
+      initialDate: _lembrete?.dataLembrete ?? hoje,
+      firstDate: DateTime(hoje.year, hoje.month, hoje.day),
+      lastDate: DateTime(hoje.year + 2),
+      helpText: 'Quando você quer assistir?',
+    );
+    if (escolhida == null) return;
+
+    final lembrete = Lembrete(
+      id: _lembrete?.id,
+      usuarioId: _filme.usuarioId,
+      filmeId: _filme.id!,
+      dataLembrete: escolhida,
+      mensagem: 'Assistir "${_filme.titulo}"',
+    );
+
+    if (_lembrete == null) {
+      await _lembreteDao.add(lembrete);
+    } else {
+      await _lembreteDao.atualizar(lembrete);
+    }
+    await _carregarLembrete();
+  }
+
+  Future<void> _removerLembrete() async {
+    await _lembreteDao.removerPorFilme(_filme.id!);
+    await _carregarLembrete();
   }
 
   Future<void> _alternarFavorito() async {
@@ -146,6 +192,29 @@ class _DetalhesScreenState extends State<DetalhesScreen> {
                 icone: Icons.chat_bubble_outline,
                 texto: _filme.comentario,
               ),
+
+            if (!assistido) ...[
+              _InfoLinha(
+                icone: Icons.notifications_none,
+                texto: _lembrete == null
+                    ? 'Sem lembrete'
+                    : '${_lembrete!.mensagem} em ${_formatarData(_lembrete!.dataLembrete)}',
+              ),
+              Row(
+                children: [
+                  OutlinedButton.icon(
+                    onPressed: _definirLembrete,
+                    icon: const Icon(Icons.alarm_add_outlined),
+                    label: Text(_lembrete == null ? 'Criar lembrete' : 'Alterar lembrete'),
+                  ),
+                  if (_lembrete != null)
+                    TextButton(
+                      onPressed: _removerLembrete,
+                      child: const Text('Remover'),
+                    ),
+                ],
+              ),
+            ],
 
             const SizedBox(height: 24),
             Row(

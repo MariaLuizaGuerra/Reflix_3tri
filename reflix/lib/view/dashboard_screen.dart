@@ -31,6 +31,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   final FilmeDao _dao = FilmeDao();
 
   bool _carregando = true;
+  String? _erro;
   int _totalAssistidos = 0;
   String? _generoQueridinho;
   int _titulosDoGenero = 0;
@@ -46,176 +47,227 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   Future<void> _carregar() async {
-    final id = widget.usuario.id!;
-    final assistidos = await _dao.listarPorUsuario(id, StatusTitulo.assistido);
-    final desejos = await _dao.listarPorUsuario(id, StatusTitulo.paraAssistir);
-    if (!mounted) return;
-
-    // Conta quantos títulos e quanta nota cada gênero tem
-    final contagem = <String, int>{};
-    final somaNotas = <String, double>{};
-    for (final f in assistidos) {
-      contagem[f.genero] = (contagem[f.genero] ?? 0) + 1;
-      somaNotas[f.genero] = (somaNotas[f.genero] ?? 0) + f.nota;
-    }
-
-    // Gênero queridinho = o que tem mais títulos (empate: maior média)
-    String? melhorGenero;
-    for (final genero in contagem.keys) {
-      if (melhorGenero == null) {
-        melhorGenero = genero;
-        continue;
+    try {
+      final id = widget.usuario.id;
+      if (id == null) {
+        throw StateError('Usuário sem id (widget.usuario.id é null).');
       }
-      final mediaAtual = somaNotas[genero]! / contagem[genero]!;
-      final mediaMelhor = somaNotas[melhorGenero]! / contagem[melhorGenero]!;
-      if (contagem[genero]! > contagem[melhorGenero]! ||
-          (contagem[genero] == contagem[melhorGenero] && mediaAtual > mediaMelhor)) {
-        melhorGenero = genero;
-      }
-    }
 
-    // Média geral (só notas maiores que 0)
-    double soma = 0;
-    int qtdComNota = 0;
-    for (final f in assistidos) {
-      if (f.nota > 0) {
-        soma += f.nota;
-        qtdComNota++;
-      }
-    }
-    final mediaGeral = qtdComNota == 0 ? null : soma / qtdComNota;
+      final assistidos =
+          await _dao.listarPorUsuario(id, StatusTitulo.assistido);
+      final desejos =
+          await _dao.listarPorUsuario(id, StatusTitulo.paraAssistir);
+      if (!mounted) return;
 
-    // Barras: últimos 6 meses (o último é o mês atual)
-    final agora = DateTime.now();
-    final barras = <_MesBarra>[];
-    for (var i = _mesesNoGrafico - 1; i >= 0; i--) {
-      final mes = DateTime(agora.year, agora.month - i);
-      int qtd = 0;
+      // Estatísticas calculadas direto no SQLite
+      final total = await _dao.contarAssistidos(id);
+      final favorito = await _dao.generoFavorito(id);
+      final mediaGeral = await _dao.mediaGeral(id);
+      final porMes = await _dao.assistidosPorMes(id);
+      if (!mounted) return;
+
+      String? melhorGenero;
+      int titulosDoGenero = 0;
+      if (favorito != null) {
+        melhorGenero = favorito['genero'] as String?;
+        // num cobre int e double vindos do SQLite
+        titulosDoGenero = (favorito['total'] as num?)?.toInt() ?? 0;
+      }
+
+      // Barras: últimos 6 meses (o último é o mês atual)
+      final agora = DateTime.now();
+      final barras = <_MesBarra>[];
+      for (var i = _mesesNoGrafico - 1; i >= 0; i--) {
+        final mes = DateTime(agora.year, agora.month - i);
+        final chave = '${mes.year}-${mes.month.toString().padLeft(2, '0')}';
+        final qtd = porMes[chave] ?? 0;
+        barras.add(_MesBarra(_mesesAbrev[mes.month - 1], qtd, i == 0));
+      }
+
+      // Títulos que o usuário já tem (para não recomendar de novo)
+      final jaCadastrados = <String>[];
       for (final f in assistidos) {
-        final d = f.dataAssistido;
-        if (d != null && d.year == mes.year && d.month == mes.month) qtd++;
+        jaCadastrados.add(f.titulo.trim().toLowerCase());
       }
-      barras.add(_MesBarra(_mesesAbrev[mes.month - 1], qtd, i == 0));
-    }
-
-    // Títulos que o usuário já tem (para não recomendar de novo)
-    final jaCadastrados = <String>[];
-    for (final f in assistidos) {
-      jaCadastrados.add(f.titulo.trim().toLowerCase());
-    }
-    for (final f in desejos) {
-      jaCadastrados.add(f.titulo.trim().toLowerCase());
-    }
-
-    // Recomendações: pega do catálogo do gênero queridinho
-    final recomendacoes = <Recomendacao>[];
-    final generosUsados = <String>[];
-    if (melhorGenero != null) {
-      final lista = catalogoRecomendacoes[melhorGenero] ?? [];
-      for (final r in lista) {
-        if (recomendacoes.length >= _maxRecomendacoes) break;
-        if (jaCadastrados.contains(r.titulo.trim().toLowerCase())) continue;
-        recomendacoes.add(r);
+      for (final f in desejos) {
+        jaCadastrados.add(f.titulo.trim().toLowerCase());
       }
-      if (recomendacoes.isNotEmpty) generosUsados.add(melhorGenero);
-    }
 
-    setState(() {
-      _totalAssistidos = assistidos.length;
-      _generoQueridinho = melhorGenero;
-      _titulosDoGenero = melhorGenero == null ? 0 : contagem[melhorGenero]!;
-      _mediaGeral = mediaGeral;
-      _barras = barras;
-      _recomendacoes = recomendacoes;
-      _generosBase = generosUsados;
-      _carregando = false;
-    });
+      // Recomendações: pega do catálogo do gênero queridinho
+      final recomendacoes = <Recomendacao>[];
+      final generosUsados = <String>[];
+      if (melhorGenero != null) {
+        final lista = catalogoRecomendacoes[melhorGenero] ?? [];
+        for (final r in lista) {
+          if (recomendacoes.length >= _maxRecomendacoes) break;
+          if (jaCadastrados.contains(r.titulo.trim().toLowerCase())) continue;
+          recomendacoes.add(r);
+        }
+        if (recomendacoes.isNotEmpty) generosUsados.add(melhorGenero);
+      }
+
+      if (!mounted) return;
+      setState(() {
+        _totalAssistidos = total;
+        _generoQueridinho = melhorGenero;
+        _titulosDoGenero = titulosDoGenero;
+        _mediaGeral = mediaGeral;
+        _barras = barras;
+        _recomendacoes = recomendacoes;
+        _generosBase = generosUsados;
+        _erro = null;
+        _carregando = false;
+      });
+    } catch (e, st) {
+      // Mostra o erro real no console e destrava a tela
+      debugPrint('ERRO no dashboard: $e\n$st');
+      if (!mounted) return;
+      setState(() {
+        _erro = e.toString();
+        _carregando = false;
+      });
+    }
   }
 
   // O botão + salva a recomendação em "Para assistir"
   Future<void> _adicionar(Recomendacao r) async {
-    await _dao.add(Filme(
-      usuarioId: widget.usuario.id!,
-      titulo: r.titulo,
-      tipo: r.tipo,
-      genero: r.genero,
-      anoLancamento: r.ano,
-      status: StatusTitulo.paraAssistir,
-    ));
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('"${r.titulo}" adicionado em Para assistir.')),
-    );
-    await _carregar();
+    try {
+      await _dao.add(Filme(
+        usuarioId: widget.usuario.id!,
+        titulo: r.titulo,
+        tipo: r.tipo,
+        genero: r.genero,
+        anoLancamento: r.ano,
+        status: StatusTitulo.paraAssistir,
+      ));
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('"${r.titulo}" adicionado em Para assistir.')),
+      );
+      await _carregar();
+    } catch (e, st) {
+      debugPrint('ERRO ao adicionar recomendação: $e\n$st');
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Não foi possível adicionar o título.')),
+      );
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
+    Widget corpo;
+    if (_carregando) {
+      corpo = const Center(child: CircularProgressIndicator());
+    } else if (_erro != null) {
+      corpo = Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.error_outline,
+                  size: 40, color: theme.colorScheme.error),
+              const SizedBox(height: 12),
+              const Text(
+                'Não foi possível carregar o dashboard.',
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 8),
+              Text(
+                _erro!,
+                textAlign: TextAlign.center,
+                style: theme.textTheme.bodySmall
+                    ?.copyWith(color: theme.colorScheme.outline),
+              ),
+              const SizedBox(height: 16),
+              FilledButton(
+                onPressed: () {
+                  setState(() {
+                    _erro = null;
+                    _carregando = true;
+                  });
+                  _carregar();
+                },
+                child: const Text('Tentar novamente'),
+              ),
+            ],
+          ),
+        ),
+      );
+    } else {
+      corpo = RefreshIndicator(
+        onRefresh: _carregar,
+        child: ListView(
+          padding: const EdgeInsets.all(16),
+          children: [
+            IntrinsicHeight(
+              child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Expanded(
+                  child: _CardEstatistica(
+                    icone: Icons.workspace_premium_outlined,
+                    rotulo: 'Gênero queridinho',
+                    valor: _generoQueridinho ?? '—',
+                    detalhe: _titulosDoGenero == 1
+                        ? '1 título'
+                        : '$_titulosDoGenero títulos',
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: _CardEstatistica(
+                    icone: Icons.star_border_rounded,
+                    rotulo: 'Média geral',
+                    valor: _mediaGeral == null
+                        ? '—'
+                        : _mediaGeral!.toStringAsFixed(1),
+                    detalhe: 'de 5 estrelas',
+                  ),
+                ),
+              ],
+            ),
+            ),
+            const SizedBox(height: 12),
+            _GraficoMensal(barras: _barras, total: _totalAssistidos),
+            const SizedBox(height: 20),
+            Row(
+              children: [
+                Icon(Icons.bolt_outlined,
+                    color: theme.colorScheme.primary, size: 20),
+                const SizedBox(width: 6),
+                Text(
+                  'Recomendados pra você',
+                  style: theme.textTheme.titleSmall
+                      ?.copyWith(fontWeight: FontWeight.bold),
+                ),
+              ],
+            ),
+            const SizedBox(height: 4),
+            Text(
+              _recomendacoes.isEmpty
+                  ? (_totalAssistidos == 0
+                      ? 'Registre títulos assistidos para receber recomendações.'
+                      : 'Você já cadastrou todas as sugestões dos seus gêneros favoritos.')
+                  : 'com base em ${_generosBase.join(', ')} · ainda não cadastrados',
+              style: theme.textTheme.bodySmall
+                  ?.copyWith(color: theme.colorScheme.outline),
+            ),
+            const SizedBox(height: 10),
+            for (final r in _recomendacoes)
+              _ItemRecomendacao(
+                  recomendacao: r, onAdicionar: () => _adicionar(r)),
+          ],
+        ),
+      );
+    }
+
     return Scaffold(
       appBar: AppBar(title: const Text('Meu Dashboard')),
-      body: _carregando
-          ? const Center(child: CircularProgressIndicator())
-          : RefreshIndicator(
-              onRefresh: _carregar,
-              child: ListView(
-                padding: const EdgeInsets.all(16),
-                children: [
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      Expanded(
-                        child: _CardEstatistica(
-                          icone: Icons.workspace_premium_outlined,
-                          rotulo: 'Gênero queridinho',
-                          valor: _generoQueridinho ?? '—',
-                          detalhe: _titulosDoGenero == 1
-                              ? '1 título'
-                              : '$_titulosDoGenero títulos',
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: _CardEstatistica(
-                          icone: Icons.star_border_rounded,
-                          rotulo: 'Média geral',
-                          valor: _mediaGeral == null ? '—' : _mediaGeral!.toStringAsFixed(1),
-                          detalhe: 'de 5 estrelas',
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-
-                  _GraficoMensal(barras: _barras, total: _totalAssistidos),
-                  const SizedBox(height: 20),
-
-                  Row(
-                    children: [
-                      Icon(Icons.bolt_outlined, color: theme.colorScheme.primary, size: 20),
-                      const SizedBox(width: 6),
-                      Text(
-                        'Recomendados pra você',
-                        style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    _recomendacoes.isEmpty
-                        ? (_totalAssistidos == 0
-                            ? 'Registre títulos assistidos para receber recomendações.'
-                            : 'Você já cadastrou todas as sugestões dos seus gêneros favoritos.')
-                        : 'com base em ${_generosBase.join(', ')} · ainda não cadastrados',
-                    style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.outline),
-                  ),
-                  const SizedBox(height: 10),
-                  for (final r in _recomendacoes)
-                    _ItemRecomendacao(recomendacao: r, onAdicionar: () => _adicionar(r)),
-                ],
-              ),
-            ),
+      body: corpo,
     );
   }
 }
@@ -237,7 +289,8 @@ class _CardEstatistica extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final suave = theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.outline);
+    final suave =
+        theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.outline);
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
@@ -257,7 +310,8 @@ class _CardEstatistica extends StatelessWidget {
             maxLines: 2,
             textAlign: TextAlign.center,
             overflow: TextOverflow.ellipsis,
-            style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+            style:
+                theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 2),
           Text(detalhe, style: suave),
@@ -278,7 +332,8 @@ class _GraficoMensal extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final suave = theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.outline);
+    final suave =
+        theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.outline);
     // Maior quantidade entre as barras (define a altura máxima)
     int maior = 0;
     for (final b in barras) {
@@ -301,7 +356,8 @@ class _GraficoMensal extends StatelessWidget {
               Text('Assistidos por mês', style: suave),
               Text(
                 '$total no total',
-                style: theme.textTheme.labelMedium?.copyWith(fontWeight: FontWeight.bold),
+                style: theme.textTheme.labelMedium
+                    ?.copyWith(fontWeight: FontWeight.bold),
               ),
             ],
           ),
@@ -318,17 +374,21 @@ class _GraficoMensal extends StatelessWidget {
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.end,
                         children: [
-                          Text(b.quantidade == 0 ? '' : '${b.quantidade}', style: suave),
+                          Text(b.quantidade == 0 ? '' : '${b.quantidade}',
+                              style: suave),
                           const SizedBox(height: 4),
                           Container(
-                            height: b.quantidade == 0
+                            height: (b.quantidade == 0 || maior == 0)
                                 ? 3
                                 : _alturaMaxima * b.quantidade / maior,
                             decoration: BoxDecoration(
                               color: b.quantidade == 0
                                   ? const Color(0xFF2B2B2B)
-                                  : (b.atual ? const Color(0xFF6B6B6B) : theme.colorScheme.primary),
-                              borderRadius: const BorderRadius.vertical(top: Radius.circular(4)),
+                                  : (b.atual
+                                      ? const Color(0xFF6B6B6B)
+                                      : theme.colorScheme.primary),
+                              borderRadius: const BorderRadius.vertical(
+                                  top: Radius.circular(4)),
                             ),
                           ),
                           const SizedBox(height: 6),
@@ -350,7 +410,8 @@ class _GraficoMensal extends StatelessWidget {
 class _ItemRecomendacao extends StatelessWidget {
   final Recomendacao recomendacao;
   final VoidCallback onAdicionar;
-  const _ItemRecomendacao({required this.recomendacao, required this.onAdicionar});
+  const _ItemRecomendacao(
+      {required this.recomendacao, required this.onAdicionar});
 
   @override
   Widget build(BuildContext context) {
@@ -389,12 +450,14 @@ class _ItemRecomendacao extends StatelessWidget {
                   recomendacao.titulo,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600),
+                  style: theme.textTheme.titleSmall
+                      ?.copyWith(fontWeight: FontWeight.w600),
                 ),
                 const SizedBox(height: 2),
                 Text(
                   '${recomendacao.ano} · ${recomendacao.tipo.label}',
-                  style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.outline),
+                  style: theme.textTheme.bodySmall
+                      ?.copyWith(color: theme.colorScheme.outline),
                 ),
               ],
             ),

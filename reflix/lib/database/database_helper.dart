@@ -12,10 +12,11 @@ class DatabaseHelper {
   Future<Database> get database async => _database ??= await _initDatabase();
 
   // Suba esse número sempre que alterar o schema abaixo.
-  static const int _version = 4;
+  static const int _version = 5;
   static const String _dbName = 'app_filmes.db';
   static const String tableFilmes = 'filmes';
   static const String tableUsuarios = 'usuarios';
+  static const String tableLembretes = 'lembretes';
 
   Future<Database> _initDatabase() async {
     final path = join(await getDatabasesPath(), _dbName);
@@ -55,23 +56,36 @@ class DatabaseHelper {
     )
   ''');
 
+  Future<void> _createLembretes(Database db) => db.execute('''
+    CREATE TABLE IF NOT EXISTS $tableLembretes (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      usuarioId INTEGER NOT NULL,
+      filmeId INTEGER NOT NULL,
+      dataLembrete TEXT NOT NULL,
+      mensagem TEXT,
+      FOREIGN KEY (usuarioId) REFERENCES $tableUsuarios (id),
+      FOREIGN KEY (filmeId) REFERENCES $tableFilmes (id) ON DELETE CASCADE
+    )
+  ''');
+
   Future<void> _createDb(Database db, int version) async {
-    await _createFilmes(db);
     await _createUsuarios(db);
+    await _createFilmes(db);
+    await _createLembretes(db);
   }
 
   // v3: recria a tabela filmes
   // v4: adiciona a coluna caminhoFoto
+  // v5: cria a tabela lembretes
   Future<void> _upgradeDb(Database db, int oldVersion, int newVersion) async {
     await _createUsuarios(db);
     if (oldVersion < 3) {
       await db.execute('DROP TABLE IF EXISTS $tableFilmes');
       await _createFilmes(db);
-      return;
-    }
-    if (oldVersion < 4) {
+    } else if (oldVersion < 4) {
       await db.execute('ALTER TABLE $tableFilmes ADD COLUMN caminhoFoto TEXT');
     }
+    await _createLembretes(db);
   }
 
   // Útil em desenvolvimento: apaga o banco físico do dispositivo.

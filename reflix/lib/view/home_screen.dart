@@ -7,6 +7,7 @@ import 'dashboard_screen.dart';
 import 'detalhes_screen.dart';
 import 'formulario_screen.dart';
 import 'login_screen.dart';
+import 'perfil_screen.dart';
 
 /// Tela principal. Mostra o catálogo do usuário logado em duas abas:
 /// "Assistidos" e "Para assistir" (lista de desejos).
@@ -21,6 +22,7 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   final FilmeDao _dao = FilmeDao();
 
+  late Usuario _usuario;
   StatusTitulo _aba = StatusTitulo.assistido;
   List<Filme> _filmes = [];
   bool _carregando = true;
@@ -28,12 +30,13 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
+    _usuario = widget.usuario;
     _carregar();
   }
 
   Future<void> _carregar() async {
     setState(() => _carregando = true);
-    final lista = await _dao.listarPorUsuario(widget.usuario.id!, _aba);
+    final lista = await _dao.listarPorUsuario(_usuario.id!, _aba);
     if (!mounted) return;
     setState(() {
       _filmes = lista;
@@ -90,7 +93,7 @@ class _HomeScreenState extends State<HomeScreen> {
   Future<void> _abrirCadastro() async {
     final resultado = await Navigator.push(
       context,
-      MaterialPageRoute(builder: (_) => FormularioScreen(usuarioId: widget.usuario.id!)),
+      MaterialPageRoute(builder: (_) => FormularioScreen(usuarioId: _usuario.id!)),
     );
     if (resultado != null) await _carregar();
   }
@@ -98,10 +101,23 @@ class _HomeScreenState extends State<HomeScreen> {
   Future<void> _abrirDashboard() async {
     await Navigator.push(
       context,
-      MaterialPageRoute(builder: (_) => DashboardScreen(usuario: widget.usuario)),
+      MaterialPageRoute(builder: (_) => DashboardScreen(usuario: _usuario)),
     );
     // Recarrega (recomendações vão para "Para assistir")
     await _carregar();
+  }
+
+  Future<void> _abrirPerfil() async {
+    final resultado = await Navigator.push<Object?>(
+      context,
+      MaterialPageRoute<Object?>(builder: (_) => PerfilScreen(usuario: _usuario)),
+    );
+    if (!mounted) return;
+    if (resultado is Usuario) {
+      setState(() => _usuario = resultado);
+    } else if (resultado == 'excluida') {
+      _sair();
+    }
   }
 
   void _sair() {
@@ -127,13 +143,15 @@ class _HomeScreenState extends State<HomeScreen> {
             tooltip: 'Perfil',
             icon: const Icon(Icons.account_circle_outlined),
             onSelected: (valor) {
+              if (valor == 'perfil') _abrirPerfil();
               if (valor == 'sair') _sair();
             },
             itemBuilder: (context) => [
               PopupMenuItem(
                 enabled: false,
-                child: Text(widget.usuario.nome),
+                child: Text(_usuario.nome),
               ),
+              const PopupMenuItem(value: 'perfil', child: Text('Meu perfil')),
               const PopupMenuItem(value: 'sair', child: Text('Sair')),
             ],
           ),

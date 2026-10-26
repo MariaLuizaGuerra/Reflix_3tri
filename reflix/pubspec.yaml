@@ -1,5 +1,5 @@
 name: app_filmes
-description: Aplicativo de avaliação de filmes e séries com SQLite (CRUD).
+description: REFLIX - aplicativo de avaliação de filmes e séries com SQLite.
 publish_to: 'none'
 version: 1.0.0+1
 

@@ -15,7 +15,7 @@ class AppFilmes extends StatelessWidget {
     const corSuperficie = Color(0xFF181818);
 
     return MaterialApp(
-      title: 'Meus Filmes',
+      title: 'REFLIX',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         useMaterial3: true,

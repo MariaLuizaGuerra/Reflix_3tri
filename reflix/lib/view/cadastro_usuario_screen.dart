@@ -75,6 +75,7 @@ class _CadastroUsuarioScreenState extends State<CadastroUsuarioScreen> {
         padding: const EdgeInsets.all(24),
         child: Form(
           key: _formKey,
+          autovalidateMode: AutovalidateMode.onUserInteraction,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [

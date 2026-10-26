@@ -40,6 +40,43 @@ class UsuarioDao {
     return ResultadoAuth.sucesso;
   }
 
+  Future<ResultadoAuth> atualizar({
+    required int id,
+    required String nome,
+    required String email,
+  }) async {
+    final db = await database;
+    final emailNormalizado = email.trim().toLowerCase();
+
+    final outros = await db.query(
+      _nomeTabela,
+      where: 'email = ? AND id != ?',
+      whereArgs: [emailNormalizado, id],
+    );
+    if (outros.isNotEmpty) return ResultadoAuth.emailJaCadastrado;
+
+    await db.update(
+      _nomeTabela,
+      {'nome': nome.trim(), 'email': emailNormalizado},
+      where: 'id = ?',
+      whereArgs: [id],
+    );
+    return ResultadoAuth.sucesso;
+  }
+
+    // Código Corrigido no seu usuario_dao.dart
+  Future<void> excluirConta(int id) async {
+    final db = await database;
+    await db.transaction((txn) async {
+      // ❌ REMOVA ESTA LINHA ABAIXO (A tabela tableLembretes não existe no seu DatabaseHelper):
+      // await txn.delete(DatabaseHelper.tableLembretes, where: 'usuarioId = ?', whereArgs: [id]);
+      
+      // Mantenha apenas estas:
+      await txn.delete(DatabaseHelper.tableFilmes, where: 'usuarioId = ?', whereArgs: [id]);
+      await txn.delete(_nomeTabela, where: 'id = ?', whereArgs: [id]);
+    });
+  }
+
   Future<Usuario?> autenticar({
     required String email,
     required String senha,
