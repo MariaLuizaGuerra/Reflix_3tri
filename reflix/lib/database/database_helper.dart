@@ -95,4 +95,9 @@ class DatabaseHelper {
     await deleteDatabase(path);
     _database = null;
   }
+
+  Future<void> salvarImagem(String url) async {
+    final db = await _initDatabase();
+    await db.insert('tabela', {'foto': url}); 
+  }
 }

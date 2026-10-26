@@ -1,5 +1,4 @@
 import 'dart:io';
-
 import 'package:app_filmes/database/filme_dao.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
@@ -105,7 +104,6 @@ class _FormularioScreenState extends State<FormularioScreen> {
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(texto)));
   }
 
-  // Copia a imagem para a pasta do app (o cache pode ser apagado)
   Future<String> _copiarParaPastaDoApp(XFile arquivo) async {
     final base = await getApplicationDocumentsDirectory();
     final pasta = Directory(p.join(base.path, 'capas'));
@@ -174,7 +172,6 @@ class _FormularioScreenState extends State<FormularioScreen> {
     setState(() => _caminhoFoto = url);
   }
 
-  // ---------------- Data ----------------
 
   Future<void> _escolherData() async {
     final hoje = DateTime.now();
@@ -191,7 +188,6 @@ class _FormularioScreenState extends State<FormularioScreen> {
   String _formatarData(DateTime d) =>
       '${d.day.toString().padLeft(2, '0')}/${d.month.toString().padLeft(2, '0')}/${d.year}';
 
-  // ---------------- Salvar ----------------
 
   Future<void> _salvar() async {
     if (!_formKey.currentState!.validate()) return;
@@ -227,8 +223,6 @@ class _FormularioScreenState extends State<FormularioScreen> {
 
     if (mounted) Navigator.pop(context, filme);
   }
-
-  // ---------------- UI ----------------
 
   @override
   Widget build(BuildContext context) {
@@ -407,14 +401,7 @@ class _FormularioScreenState extends State<FormularioScreen> {
             onTap: () => _escolherFoto(ImageSource.gallery),
           ),
         ),
-        const SizedBox(width: 10),
-        Expanded(
-          child: _BotaoFoto(
-            icone: Icons.public,
-            texto: 'Internet',
-            onTap: _informarUrl,
-          ),
-        ),
+        
       ],
     );
   }

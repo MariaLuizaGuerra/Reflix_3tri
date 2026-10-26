@@ -68,10 +68,6 @@ class UsuarioDao {
   Future<void> excluirConta(int id) async {
     final db = await database;
     await db.transaction((txn) async {
-      // ❌ REMOVA ESTA LINHA ABAIXO (A tabela tableLembretes não existe no seu DatabaseHelper):
-      // await txn.delete(DatabaseHelper.tableLembretes, where: 'usuarioId = ?', whereArgs: [id]);
-      
-      // Mantenha apenas estas:
       await txn.delete(DatabaseHelper.tableFilmes, where: 'usuarioId = ?', whereArgs: [id]);
       await txn.delete(_nomeTabela, where: 'id = ?', whereArgs: [id]);
     });

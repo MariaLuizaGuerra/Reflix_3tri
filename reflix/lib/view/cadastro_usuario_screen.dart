@@ -22,7 +22,6 @@ class _CadastroUsuarioScreenState extends State<CadastroUsuarioScreen> {
   bool _carregando = false;
 
   final _regexEmail = RegExp(r'^[\w\.\-]+@[\w\-]+\.[a-zA-Z]{2,}$');
-  // Exige ao menos 1 letra e 1 número, mínimo de 6 caracteres.
   final _regexSenhaForte = RegExp(r'^(?=.*[A-Za-z])(?=.*\d).{6,}$');
 
   @override
@@ -61,8 +60,6 @@ class _CadastroUsuarioScreenState extends State<CadastroUsuarioScreen> {
         );
         break;
       case ResultadoAuth.credenciaisInvalidas:
-        // Não ocorre nesse fluxo de cadastro, mas o enum cobre o caso
-        // genérico de erro para reuso futuro.
         break;
     }
   }

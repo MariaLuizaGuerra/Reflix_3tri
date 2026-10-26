@@ -8,8 +8,6 @@ import 'formulario_screen.dart';
 import 'capa_imagem.dart';
 
 /// Tela 2 - Detalhes (READ individual + flag UPDATE + DELETE).
-/// StatefulWidget porque o botão de favorito precisa refletir a mudança
-/// imediatamente na própria tela, sem esperar voltar para a Home.
 class DetalhesScreen extends StatefulWidget {
   final Filme filme;
 
@@ -22,7 +20,7 @@ class DetalhesScreen extends StatefulWidget {
 class _DetalhesScreenState extends State<DetalhesScreen> {
   final FilmeDao _dao = FilmeDao();
   final LembreteDao _lembreteDao = LembreteDao();
-  late Filme _filme; // cópia local para refletir alterações sem novo fetch
+  late Filme _filme;
   Lembrete? _lembrete;
 
   @override
@@ -85,7 +83,6 @@ class _DetalhesScreenState extends State<DetalhesScreen> {
       context,
       MaterialPageRoute(builder: (_) => FormularioScreen(usuarioId: _filme.usuarioId, filmeExistente: _filme)),
     );
-    // Se a tela de edição retornou um filme atualizado, refletimos aqui.
     if (atualizado != null) {
       setState(() => _filme = atualizado);
     }
@@ -116,7 +113,6 @@ class _DetalhesScreenState extends State<DetalhesScreen> {
     if (confirmou == true) {
       await _dao.remover(_filme.id!);
       if (mounted) {
-        // Sinaliza para a Home (via pop com valor) que o item foi removido.
         Navigator.pop(context, 'excluido');
       }
     }
@@ -142,7 +138,7 @@ class _DetalhesScreenState extends State<DetalhesScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Capa ou ícone
+            // Capa padrão (sem dependência de links externos da internet)
             ClipRRect(
               borderRadius: BorderRadius.circular(12),
               child: SizedBox(
@@ -171,7 +167,6 @@ class _DetalhesScreenState extends State<DetalhesScreen> {
             ),
             const SizedBox(height: 16),
 
-            // Estrelas (só para quem já assistiu)
             if (assistido) ...[
               StarRating(nota: _filme.nota, tamanho: 26),
               const SizedBox(height: 16),
@@ -270,10 +265,9 @@ class _DetalhesScreenState extends State<DetalhesScreen> {
   }
 }
 
-/// Selo "FILME" / "SÉRIE", reaproveitando o mesmo estilo do card da lista.
 class _Badge extends StatelessWidget {
   final String texto;
-  final bool destaque; // fundo vermelho
+  final bool destaque;
   const _Badge({required this.texto, this.destaque = false});
 
   @override
@@ -296,7 +290,6 @@ class _Badge extends StatelessWidget {
   }
 }
 
-/// Linha de informação com ícone + texto, reutilizada várias vezes na tela.
 class _InfoLinha extends StatelessWidget {
   final IconData icone;
   final String texto;

@@ -42,6 +42,7 @@ class CapaImagem extends StatelessWidget {
 
     if (c == null || c.isEmpty) return placeholder;
 
+
     if (ehUrl(c)) {
       return Image.network(
         c,
@@ -53,7 +54,6 @@ class CapaImagem extends StatelessWidget {
             progresso == null ? child : placeholder,
       );
     }
-
     final arquivo = File(c);
     if (!arquivo.existsSync()) return placeholder;
     return Image.file(

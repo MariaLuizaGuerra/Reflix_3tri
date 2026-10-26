@@ -22,8 +22,18 @@ class _MesBarra {
 
 class _DashboardScreenState extends State<DashboardScreen> {
   static const _mesesAbrev = [
-    'Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun',
-    'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez',
+    'Jan',
+    'Fev',
+    'Mar',
+    'Abr',
+    'Mai',
+    'Jun',
+    'Jul',
+    'Ago',
+    'Set',
+    'Out',
+    'Nov',
+    'Dez',
   ];
   static const int _mesesNoGrafico = 6;
   static const int _maxRecomendacoes = 2;
@@ -205,31 +215,31 @@ class _DashboardScreenState extends State<DashboardScreen> {
           children: [
             IntrinsicHeight(
               child: Row(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Expanded(
-                  child: _CardEstatistica(
-                    icone: Icons.workspace_premium_outlined,
-                    rotulo: 'Gênero queridinho',
-                    valor: _generoQueridinho ?? '—',
-                    detalhe: _titulosDoGenero == 1
-                        ? '1 título'
-                        : '$_titulosDoGenero títulos',
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Expanded(
+                    child: _CardEstatistica(
+                      icone: Icons.workspace_premium_outlined,
+                      rotulo: 'Gênero queridinho',
+                      valor: _generoQueridinho ?? '—',
+                      detalhe: _titulosDoGenero == 1
+                          ? '1 título'
+                          : '$_titulosDoGenero títulos',
+                    ),
                   ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: _CardEstatistica(
-                    icone: Icons.star_border_rounded,
-                    rotulo: 'Média geral',
-                    valor: _mediaGeral == null
-                        ? '—'
-                        : _mediaGeral!.toStringAsFixed(1),
-                    detalhe: 'de 5 estrelas',
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: _CardEstatistica(
+                      icone: Icons.star_border_rounded,
+                      rotulo: 'Média geral',
+                      valor: _mediaGeral == null
+                          ? '—'
+                          : _mediaGeral!.toStringAsFixed(1),
+                      detalhe: 'de 5 estrelas',
+                    ),
                   ),
-                ),
-              ],
-            ),
+                ],
+              ),
             ),
             const SizedBox(height: 12),
             _GraficoMensal(barras: _barras, total: _totalAssistidos),
@@ -310,8 +320,8 @@ class _CardEstatistica extends StatelessWidget {
             maxLines: 2,
             textAlign: TextAlign.center,
             overflow: TextOverflow.ellipsis,
-            style:
-                theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+            style: theme.textTheme.titleLarge
+                ?.copyWith(fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 2),
           Text(detalhe, style: suave),
@@ -326,20 +336,17 @@ class _GraficoMensal extends StatelessWidget {
   final List<_MesBarra> barras;
   final int total;
   const _GraficoMensal({required this.barras, required this.total});
-
   static const double _alturaMaxima = 100;
-
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final suave =
         theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.outline);
-    // Maior quantidade entre as barras (define a altura máxima)
+// Maior quantidade entre as barras (define a altura máxima)
     int maior = 0;
     for (final b in barras) {
       if (b.quantidade > maior) maior = b.quantidade;
     }
-
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
@@ -363,7 +370,8 @@ class _GraficoMensal extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           SizedBox(
-            height: _alturaMaxima + 38,
+            height: _alturaMaxima +
+                48, // Corrigido aqui (de 38 para 48) para evitar o layout overflow
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
@@ -412,11 +420,9 @@ class _ItemRecomendacao extends StatelessWidget {
   final VoidCallback onAdicionar;
   const _ItemRecomendacao(
       {required this.recomendacao, required this.onAdicionar});
-
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
       padding: const EdgeInsets.all(10),
