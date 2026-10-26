@@ -12,7 +12,7 @@ class DatabaseHelper {
   Future<Database> get database async => _database ??= await _initDatabase();
 
   // Suba esse número sempre que alterar o schema abaixo.
-  static const int _version = 3;
+  static const int _version = 4;
   static const String _dbName = 'app_filmes.db';
   static const String tableFilmes = 'filmes';
   static const String tableUsuarios = 'usuarios';
@@ -40,6 +40,7 @@ class DatabaseHelper {
       nota REAL NOT NULL,
       dataAssistido TEXT,
       comentario TEXT,
+      caminhoFoto TEXT,
       favorito INTEGER NOT NULL DEFAULT 0,
       FOREIGN KEY (usuarioId) REFERENCES $tableUsuarios (id)
     )
@@ -59,14 +60,18 @@ class DatabaseHelper {
     await _createUsuarios(db);
   }
 
-  // v3: a tabela filmes ganhou usuarioId, status e dataAssistido.
-  // Em desenvolvimento, recriamos a tabela (os filmes antigos são apagados).
+  // v3: recria a tabela filmes
+  // v4: adiciona a coluna caminhoFoto
   Future<void> _upgradeDb(Database db, int oldVersion, int newVersion) async {
     await _createUsuarios(db);
     if (oldVersion < 3) {
       await db.execute('DROP TABLE IF EXISTS $tableFilmes');
+      await _createFilmes(db);
+      return;
     }
-    await _createFilmes(db);
+    if (oldVersion < 4) {
+      await db.execute('ALTER TABLE $tableFilmes ADD COLUMN caminhoFoto TEXT');
+    }
   }
 
   // Útil em desenvolvimento: apaga o banco físico do dispositivo.

@@ -1,6 +1,6 @@
-import 'dart:io';
 import 'package:app_filmes/model/filme_model.dart';
 import 'package:flutter/material.dart';
+import 'capa_imagem.dart';
 import 'star_rating.dart';
 
 /// Card de um título na lista: capa, título, estrelas, favorito e excluir.
@@ -32,7 +32,14 @@ class FilmeCard extends StatelessWidget {
           padding: const EdgeInsets.all(10),
           child: Row(
             children: [
-              _Capa(caminho: filme.caminhoFoto, tipo: filme.tipo),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(6),
+                child: SizedBox(
+                  width: 52,
+                  height: 72,
+                  child: CapaImagem(caminho: filme.caminhoFoto, tipo: filme.tipo),
+                ),
+              ),
               const SizedBox(width: 12),
               Expanded(
                 child: Column(
@@ -74,36 +81,6 @@ class FilmeCard extends StatelessWidget {
             ],
           ),
         ),
-      ),
-    );
-  }
-}
-
-/// Miniatura da capa: mostra a foto salva ou um ícone padrão.
-class _Capa extends StatelessWidget {
-  final String? caminho;
-  final TipoTitulo tipo;
-  const _Capa({required this.caminho, required this.tipo});
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final temFoto = caminho != null && File(caminho!).existsSync();
-
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(6),
-      child: SizedBox(
-        width: 52,
-        height: 72,
-        child: temFoto
-            ? Image.file(File(caminho!), fit: BoxFit.cover)
-            : ColoredBox(
-                color: theme.colorScheme.surfaceContainerHighest,
-                child: Icon(
-                  tipo == TipoTitulo.filme ? Icons.movie_outlined : Icons.live_tv_outlined,
-                  color: theme.colorScheme.outline,
-                ),
-              ),
       ),
     );
   }

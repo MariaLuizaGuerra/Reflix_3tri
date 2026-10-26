@@ -45,5 +45,9 @@
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+	<key>NSCameraUsageDescription</key>
+	<string>O Reflix usa a câmera para tirar a foto da capa do título.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>O Reflix usa a galeria para escolher a capa do título.</string>
 </dict>
 </plist>

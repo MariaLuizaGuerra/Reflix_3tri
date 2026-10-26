@@ -3,6 +3,7 @@ import 'package:app_filmes/model/filme_model.dart';
 import 'package:app_filmes/model/usuario_model.dart';
 import 'package:flutter/material.dart';
 import 'filme_card.dart';
+import 'dashboard_screen.dart';
 import 'detalhes_screen.dart';
 import 'formulario_screen.dart';
 import 'login_screen.dart';
@@ -78,11 +79,12 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _abrirDetalhes(Filme filme) async {
-    final resultado = await Navigator.push(
+    await Navigator.push(
       context,
       MaterialPageRoute(builder: (_) => DetalhesScreen(filme: filme)),
     );
-    if (resultado != null) await _carregar();
+    // Recarrega a lista (pode ter mudado lá)
+    await _carregar();
   }
 
   Future<void> _abrirCadastro() async {
@@ -93,10 +95,13 @@ class _HomeScreenState extends State<HomeScreen> {
     if (resultado != null) await _carregar();
   }
 
-  void _abrirDashboard() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Dashboard em breve.')),
+  Future<void> _abrirDashboard() async {
+    await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => DashboardScreen(usuario: widget.usuario)),
     );
+    // Recarrega (recomendações vão para "Para assistir")
+    await _carregar();
   }
 
   void _sair() {

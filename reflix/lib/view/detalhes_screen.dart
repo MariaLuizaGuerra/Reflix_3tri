@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../model/filme_model.dart';
 import 'star_rating.dart';
 import 'formulario_screen.dart';
+import 'capa_imagem.dart';
 
 /// Tela 2 - Detalhes (READ individual + flag UPDATE + DELETE).
 /// StatefulWidget porque o botão de favorito precisa refletir a mudança
@@ -78,6 +79,7 @@ class _DetalhesScreenState extends State<DetalhesScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final assistido = _filme.status == StatusTitulo.assistido;
     final data = _filme.dataAssistido;
     final dataFormatada = data == null
         ? '-'
@@ -94,43 +96,52 @@ class _DetalhesScreenState extends State<DetalhesScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Área de destaque (poderia futuramente exibir um pôster)
-            Container(
-              width: double.infinity,
-              height: 140,
-              decoration: BoxDecoration(
-                color: theme.colorScheme.surface,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: theme.colorScheme.outlineVariant),
-              ),
-              alignment: Alignment.center,
-              child: Icon(
-                _filme.tipo == TipoTitulo.filme
-                    ? Icons.movie_outlined
-                    : Icons.live_tv_outlined,
-                size: 48,
-                color: theme.colorScheme.primary,
+            // Capa ou ícone
+            ClipRRect(
+              borderRadius: BorderRadius.circular(12),
+              child: SizedBox(
+                width: double.infinity,
+                height: 190,
+                child: CapaImagem(
+                  caminho: _filme.caminhoFoto,
+                  tipo: _filme.tipo,
+                  fundo: Colors.black,
+                  corIcone: theme.colorScheme.primary,
+                  tamanhoIcone: 56,
+                ),
               ),
             ),
             const SizedBox(height: 12),
 
-            _Badge(texto: _filme.tipo.label.toUpperCase()),
+            Row(
+              children: [
+                _Badge(texto: _filme.tipo.label.toUpperCase()),
+                const SizedBox(width: 8),
+                _Badge(
+                  texto: _filme.status.label.toUpperCase(),
+                  destaque: true,
+                ),
+              ],
+            ),
             const SizedBox(height: 16),
 
-            // Estrelas em modo somente leitura
-            StarRating(nota: _filme.nota, tamanho: 26),
-            const SizedBox(height: 16),
+            // Estrelas (só para quem já assistiu)
+            if (assistido) ...[
+              StarRating(nota: _filme.nota, tamanho: 26),
+              const SizedBox(height: 16),
+            ],
 
-            _InfoLinha(icone: Icons.category_outlined, texto: _filme.genero),
+            _InfoLinha(icone: Icons.sell_outlined, texto: _filme.genero),
             _InfoLinha(
               icone: Icons.calendar_today_outlined,
               texto: 'Lançamento: ${_filme.anoLancamento}',
             ),
-            _InfoLinha(
-              icone: Icons.event_available_outlined,
-              texto: 'Assistido em $dataFormatada',
-            ),
-            if (_filme.comentario.trim().isNotEmpty)
+            if (assistido)
+              _InfoLinha(
+                icone: Icons.check,
+                texto: 'Assistido em $dataFormatada',
+              ),
+            if (assistido && _filme.comentario.trim().isNotEmpty)
               _InfoLinha(
                 icone: Icons.chat_bubble_outline,
                 texto: _filme.comentario,
@@ -139,36 +150,48 @@ class _DetalhesScreenState extends State<DetalhesScreen> {
             const SizedBox(height: 24),
             Row(
               children: [
-                Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: _alternarFavorito,
-                    icon: Icon(
-                      _filme.favorito ? Icons.favorite : Icons.favorite_border,
-                      color: theme.colorScheme.primary,
+                if (assistido) ...[
+                  Expanded(
+                    child: FilledButton.icon(
+                      onPressed: _alternarFavorito,
+                      style: FilledButton.styleFrom(
+                        backgroundColor: const Color(0xFF2B2B2B),
+                        foregroundColor: Colors.white,
+                        minimumSize: const Size.fromHeight(48),
+                      ),
+                      icon: Icon(
+                        _filme.favorito ? Icons.favorite : Icons.favorite_border,
+                        color: theme.colorScheme.primary,
+                      ),
+                      label: const Text('Favorito'),
                     ),
-                    label: Text(_filme.favorito ? 'Favoritado' : 'Favoritar'),
                   ),
-                ),
-                const SizedBox(width: 12),
+                  const SizedBox(width: 12),
+                ],
                 Expanded(
                   child: FilledButton.icon(
                     onPressed: _abrirEdicao,
+                    style: FilledButton.styleFrom(
+                      minimumSize: const Size.fromHeight(48),
+                    ),
                     icon: const Icon(Icons.edit_outlined),
                     label: const Text('Editar'),
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 10),
             SizedBox(
               width: double.infinity,
-              child: TextButton.icon(
+              child: OutlinedButton.icon(
                 onPressed: _confirmarExclusao,
-                icon: Icon(Icons.delete_outline, color: theme.colorScheme.error),
-                label: Text(
-                  'Excluir',
-                  style: TextStyle(color: theme.colorScheme.error),
+                style: OutlinedButton.styleFrom(
+                  minimumSize: const Size.fromHeight(48),
+                  foregroundColor: theme.colorScheme.onSurface,
+                  side: const BorderSide(color: Color(0xFF2B2B2B)),
                 ),
+                icon: const Icon(Icons.delete_outline),
+                label: const Text('Excluir'),
               ),
             ),
           ],
@@ -181,7 +204,8 @@ class _DetalhesScreenState extends State<DetalhesScreen> {
 /// Selo "FILME" / "SÉRIE", reaproveitando o mesmo estilo do card da lista.
 class _Badge extends StatelessWidget {
   final String texto;
-  const _Badge({required this.texto});
+  final bool destaque; // fundo vermelho
+  const _Badge({required this.texto, this.destaque = false});
 
   @override
   Widget build(BuildContext context) {
@@ -189,12 +213,15 @@ class _Badge extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       decoration: BoxDecoration(
-        color: theme.colorScheme.surfaceContainerHighest,
+        color: destaque ? theme.colorScheme.primary : theme.colorScheme.surfaceContainerHighest,
         borderRadius: BorderRadius.circular(4),
       ),
       child: Text(
         texto,
-        style: theme.textTheme.labelSmall?.copyWith(fontWeight: FontWeight.w600),
+        style: theme.textTheme.labelSmall?.copyWith(
+          fontWeight: FontWeight.w600,
+          color: destaque ? Colors.white : null,
+        ),
       ),
     );
   }

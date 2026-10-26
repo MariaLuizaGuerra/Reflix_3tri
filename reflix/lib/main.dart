@@ -50,6 +50,23 @@ class AppFilmes extends StatelessWidget {
           backgroundColor: corPrimaria,
           foregroundColor: Colors.white,
         ),
+        inputDecorationTheme: InputDecorationTheme(
+          filled: true,
+          fillColor: const Color(0xFF0F0F0F),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(10),
+            borderSide: const BorderSide(color: Color(0xFF2B2B2B)),
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(10),
+            borderSide: const BorderSide(color: Color(0xFF2B2B2B)),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(10),
+            borderSide: const BorderSide(color: corPrimaria),
+          ),
+        ),
         chipTheme: ChipThemeData(
           backgroundColor: const Color(0xFF2B2B2B),
           selectedColor: corPrimaria,
